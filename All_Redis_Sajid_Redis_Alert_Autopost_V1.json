@@ -1,0 +1,2619 @@
+{
+  "name": "All_Redis_Sajid_Redis-Alert-Autopost",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "position": [
+        240,
+        300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "redis-tickets-posting-v2",
+        "options": {}
+      },
+      "name": "Redis Ticket Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "position": [
+        -3500,
+        1840
+      ],
+      "webhookId": "e5ee5e30-f7c2-46ec-9874-d43e8e540445",
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "description",
+              "value": "={{$json[\"description\"]}}"
+            },
+            {
+              "name": "subject",
+              "value": "={{$json[\"subject\"]}}"
+            },
+            {
+              "name": "datetime",
+              "value": "={{$node[\"Get ticket details ON\"].json[\"created_at\"]}}"
+            },
+            {
+              "name": "alert_type",
+              "value": "Redis"
+            },
+            {
+              "name": "ticket_id",
+              "value": "={{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"].split('-')[1]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extracting Description1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -2940,
+        1840
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "dataPropertyName": "description",
+        "extractionValues": {
+          "values": [
+            {
+              "key": "value",
+              "cssSelector": "div",
+              "returnArray": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Extract Description by div1",
+      "type": "n8n-nodes-base.htmlExtract",
+      "position": [
+        -2680,
+        1840
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "Account",
+              "value": "={{$json[\"stdout\"].split('\\n')[0]}}"
+            },
+            {
+              "name": "Subscription",
+              "value": "={{$json[\"stdout\"].split('\\n')[2]}}"
+            },
+            {
+              "name": "Database ID",
+              "value": "={{$json[\"stdout\"].split('\\n')[1]}}"
+            },
+            {
+              "name": "DB Endpoint",
+              "value": "={{$json[\"stdout\"].split('\\n')[4]}}"
+            },
+            {
+              "name": "DBName",
+              "value": "={{$json[\"stdout\"].split('\\n')[3]}}"
+            },
+            {
+              "name": "Alert Name",
+              "value": "={{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_subject\"].split(' - ')[1]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Param Values1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -2220,
+        1840
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "command": "=echo \"{{$json[\"value\"][0]}}\" > description.txt\nAccount=`grep Account description.txt  | cut -d ':' -f 2`\nDatabase_Id=`grep \"Database Id\" description.txt | cut -d ':' -f 2`\nSubscription=`grep Subscription description.txt | cut -d ':' -f 2,3`\nDatabase_Name=`grep \"Database Name:\" description.txt | cut -d ':' -f 2`\nDatabase_Endpoint=`grep \"Database Endpoint:\" description.txt | cut -d ':' -f 2,3`\necho \"$Account\"\necho \"$Database_Id\" \necho \"$Subscription\"\necho  \"$Database_Name\"\necho \"$Database_Endpoint\""
+      },
+      "name": "Fetching Required Details1",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -2460,
+        1840
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "oncall_team",
+              "value": "={{$json[\"oncall_team\"]}}"
+            },
+            {
+              "name": "slack_name",
+              "value": "={{$json[\"slack_channel\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Fetching Slack & Oncall Details3",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1100,
+        2300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "url": "=https://oncall.freshoncall.com/api/v0/teams/{{$json[\"oncall_team\"]}}/summary/",
+        "allowUnauthorizedCerts": true,
+        "options": {}
+      },
+      "name": "Fetching Oncall Details3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -880,
+        2300
+      ],
+      "typeVersion": 1,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://oncall.freshoncall.com/api/v0/teams/Freshdesk-Infra/summary/",
+        "allowUnauthorizedCerts": true,
+        "options": {}
+      },
+      "name": "Fetching CI oncall1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1340,
+        1360
+      ],
+      "typeVersion": 1,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "=https://slack.com/api/users.lookupByEmail",
+        "options": {
+          "fullResponse": true
+        },
+        "headerParametersUi": {
+          "parameter": []
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "email",
+              "value": "={{$node[\"Fetching CI oncall1\"].json[\"current\"][\"primary\"][0][\"user\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get Slack User Primary1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -120,
+        1540
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "85",
+          "name": "Get Slack User Details"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "=https://slack.com/api/users.lookupByEmail",
+        "options": {
+          "fullResponse": true
+        },
+        "headerParametersUi": {
+          "parameter": []
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "email",
+              "value": "={{$node[\"Fetching CI oncall1\"].json[\"current\"][\"secondary\"][0][\"user\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get Slack User Secondary1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        60,
+        1540
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "85",
+          "name": "Get Slack User Details"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.getPermalink",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Posting Off Alert \"].json[\"channel\"]}}"
+            },
+            {
+              "name": "message_ts",
+              "value": "={{$node[\"Posting Off Alert \"].json[\"ts\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get CI Slack Permalink1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1220,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "86",
+          "name": "Noc-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"Extracting Description1\"].json[\"subject\"]}}",
+              "operation": "contains",
+              "value2": "off"
+            }
+          ]
+        }
+      },
+      "name": "IF11",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        700,
+        1380
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "Redis_URL",
+              "value": "=https://app.redislabs.com/#/subscriptions/subscription/{{$json[\"Subscription\"].split(':')[0].split('#')[1]}}/bdb-view/{{$json[\"Database ID\"].split(' ')[1]}}/configuration"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Redis URL",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -1960,
+        1840
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "dbname",
+              "value": "={{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}"
+            },
+            {
+              "name": "slack_channel",
+              "value": "=redislabs-alerts-noc-cloudinfra"
+            },
+            {
+              "name": "channel_id",
+              "value": "={{$json[\"channel\"]}}"
+            },
+            {
+              "name": "status",
+              "value": "0"
+            },
+            {
+              "name": "thread_id",
+              "value": "={{$json[\"ts\"]}}"
+            },
+            {
+              "name": "created_on",
+              "value": "={{$node[\"Extracting Description1\"].json[\"datetime\"]}}"
+            },
+            {
+              "name": "alert_type",
+              "value": "={{$node[\"Extracting Description1\"].json[\"alert_type\"]}}"
+            },
+            {
+              "name": "FR_ID",
+              "value": "={{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1460,
+        1700
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "table": "redis_slack_update",
+        "columns": "alert_type,FR_ID,dbname,slack_channel,channel_id,status,thread_id,created_on",
+        "options": {}
+      },
+      "name": "MySQL1",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        1700,
+        1700
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=echo \"{{$node[\"Set Param Values1\"].json[\"DBName\"]}}\" > redisdb.log\nsed 's/ //' redisdb.log > redisdb_name.log\ncat redisdb_name.log"
+      },
+      "name": "DB Name Setting to FIle",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        -1720,
+        1840
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Checking DB On/Off Alert status\"].json[\"channel_id\"]}}"
+            },
+            {
+              "name": "thread_ts",
+              "value": "={{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}"
+            },
+            {
+              "name": "text",
+              "value": "=*Alert Recovered*\n {{$node[\"Oncall Not Present2\"].json[\"oncall\"]}}<@{{$node[\"Get Slack User Primary1\"].json[\"body\"][\"user\"][\"id\"]}}> <@{{$node[\"Get Slack User Secondary1\"].json[\"body\"][\"user\"][\"id\"]}}>\n*Ticket-URL* : <{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"]}}| {{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"]}}>"
+            }
+          ]
+        }
+      },
+      "name": "Posting Off Alert ",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        960,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "100",
+          "name": "Noc-bot-slack-post"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=select * from redis_slack_update where slack_channel='redislabs-alerts-noc-cloudinfra' and status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}';"
+      },
+      "name": "Checking DB On/Off Alert status",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        460,
+        1380
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set status=1,recovered_on='{{$node[\"Extracting Description1\"].json[\"datetime\"]}}',RS_ID='{{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}'  where dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}' and status='0' and channel_id='{{$node[\"Checking DB On/Off Alert status\"].json[\"channel_id\"]}}' and thread_id='{{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}';"
+      },
+      "name": "Updating Status",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        1940,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"Checking DB On/Off Alert status\"].json[\"status\"]}}",
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "name": "IF",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        960,
+        1560
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://noc-alerts.freshservice.com/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/notes",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={ \"body\" : \"CI Redis thread link - {{$node[\"Get CI Slack Permalink2\"].json[\"permalink\"]}} \", \"private\" : false }",
+        "headerParametersJson": "{ \"content-type\": \"application/json\" }"
+      },
+      "name": "Updating CI slack link",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2200,
+        1700
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.getPermalink",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Posting to Redis Channel\"].json[\"channel\"]}}"
+            },
+            {
+              "name": "message_ts",
+              "value": "={{$node[\"Posting to Redis Channel\"].json[\"ts\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get CI Slack Permalink2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1940,
+        1700
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "86",
+          "name": "Noc-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://noc-alerts.freshservice.com/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/notes",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={ \"body\" : \"CI Redis thread link - {{$node[\"Get CI Slack Permalink1\"].json[\"permalink\"]}} \", \"private\" : false }",
+        "headerParametersJson": "{ \"content-type\": \"application/json\" }"
+      },
+      "name": "Updating CI slack link2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1460,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.getPermalink",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Posting Off Alert 2\"].json[\"channel\"]}}"
+            },
+            {
+              "name": "message_ts",
+              "value": "={{$node[\"Posting Off Alert 2\"].json[\"ts\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get CI Slack Permalink3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1240,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "86",
+          "name": "Noc-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node[\"Extracting Description1\"].json[\"subject\"]}}",
+              "operation": "contains",
+              "value2": "off"
+            }
+          ]
+        }
+      },
+      "name": "IF12",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        700,
+        2260
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "dbname",
+              "value": "={{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}"
+            },
+            {
+              "name": "slack_channel",
+              "value": "={{$node[\"Fetching Slack & Oncall Details3\"].json[\"slack_name\"]}}"
+            },
+            {
+              "name": "channel_id",
+              "value": "={{$json[\"channel\"]}}"
+            },
+            {
+              "name": "status",
+              "value": "0"
+            },
+            {
+              "name": "thread_id",
+              "value": "={{$json[\"ts\"]}}"
+            },
+            {
+              "name": "created_on",
+              "value": "={{$node[\"Extracting Description1\"].json[\"datetime\"]}}"
+            },
+            {
+              "name": "alert_type",
+              "value": "={{$node[\"Extracting Description1\"].json[\"alert_type\"]}}"
+            },
+            {
+              "name": "FR_ID",
+              "value": "={{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set1",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        1460,
+        2600
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "table": "redis_slack_update",
+        "columns": "alert_type,FR_ID,dbname,slack_channel,channel_id,status,thread_id,created_on",
+        "options": {}
+      },
+      "name": "MySQL2",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        1700,
+        2600
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "requestMethod": "POST",
+        "url": "https://slack.com/api/chat.postMessage",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Checking DB On/Off Alert status3\"].json[\"channel_id\"]}}"
+            },
+            {
+              "name": "thread_ts",
+              "value": "={{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}"
+            },
+            {
+              "name": "text",
+              "value": "=*Alert Recovered*\n{{$node[\"Oncall Not Present\"].json[\"oncall\"]}}<@{{$node[\"Prod Slack User Primary\"].json[\"body\"][\"user\"][\"id\"]}}> <@{{$node[\"Prod Slack User Secondary\"].json[\"body\"][\"user\"][\"id\"]}}>\n*Ticket-URL* : <{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"]}}| {{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"]}}>"
+            }
+          ]
+        }
+      },
+      "name": "Posting Off Alert 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        980,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "100",
+          "name": "Noc-bot-slack-post"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update  redis_slack_update set status=1,recovered_on='{{$node[\"Extracting Description1\"].json[\"datetime\"]}}',RS_ID='{{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}' where dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}' and status='0' and channel_id='{{$node[\"Checking DB On/Off Alert status3\"].json[\"channel_id\"]}}' and thread_id='{{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}';"
+      },
+      "name": "Updating Status1",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2020,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$node[\"Checking DB On/Off Alert status3\"].json[\"status\"]}}",
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "name": "IF1",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        980,
+        2460
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://noc-alerts.freshservice.com/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/notes",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={ \"body\" : \"{{$node[\"Fetching Slack & Oncall Details3\"].json[\"oncall_team\"]}} thread link - {{$node[\"Get CI Slack Permalink5\"].json[\"permalink\"]}} \", \"private\" : false }",
+        "headerParametersJson": "{ \"content-type\": \"application/json\" }"
+      },
+      "name": "Updating CI slack link4",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2200,
+        2600
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.getPermalink",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Posting to Product Channel\"].json[\"channel\"]}}"
+            },
+            {
+              "name": "message_ts",
+              "value": "={{$node[\"Posting to Product Channel\"].json[\"ts\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get CI Slack Permalink5",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1940,
+        2600
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "86",
+          "name": "Noc-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://noc-alerts.freshservice.com/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/notes",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={ \"body\" : \"{{$node[\"Fetching Slack & Oncall Details3\"].json[\"oncall_team\"]}}  Redis thread link - {{$node[\"Get CI Slack Permalink3\"].json[\"permalink\"]}} \", \"private\" : false }",
+        "headerParametersJson": "{ \"content-type\": \"application/json\" }"
+      },
+      "name": "Updating CI slack link5",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1500,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set recurring=1,recurring_on='{{$node[\"Extracting Description1\"].json[\"datetime\"]}}',FRR_ID='{{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}' where status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}' and thread_id=\"{{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}\";"
+      },
+      "name": "MySQL3",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        1940,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set FRR_ID='{{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}',recurring=1,recurring_on='{{$node[\"Extracting Description1\"].json[\"datetime\"]}}' where status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}' and thread_id=\"{{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}\";"
+      },
+      "name": "MySQL4",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        1940,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.postMessage",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Checking DB On/Off Alert status\"].json[\"channel_id\"]}}"
+            },
+            {
+              "name": "thread_ts",
+              "value": "={{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}"
+            },
+            {
+              "name": "text",
+              "value": "=*Alert Triggered  Once Again*\n {{$node[\"Oncall Not Present2\"].json[\"oncall\"]}} <@{{$node[\"Get Slack User Primary1\"].json[\"body\"][\"user\"][\"id\"]}}> <@{{$node[\"Get Slack User Secondary1\"].json[\"body\"][\"user\"][\"id\"]}}> \n*Ticket_URL* : <{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"]}}| {{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"]}}>\nPlease check this"
+            }
+          ]
+        }
+      },
+      "name": "Posting Recurring Alert",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1220,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "100",
+          "name": "Noc-bot-slack-post"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.postMessage",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Checking DB On/Off Alert status3\"].json[\"channel_id\"]}}"
+            },
+            {
+              "name": "thread_ts",
+              "value": "={{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}"
+            },
+            {
+              "name": "text",
+              "value": "=*Alert Triggered Once Again*\n{{$node[\"Oncall Not Present\"].json[\"oncall\"]}}<@{{$node[\"Prod Slack User Primary\"].json[\"body\"][\"user\"][\"id\"]}}> <@{{$node[\"Prod Slack User Secondary\"].json[\"body\"][\"user\"][\"id\"]}}>\n*Ticket-URL* : <{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"]}}| {{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"]}}>\nPlease Check this"
+            }
+          ]
+        }
+      },
+      "name": "Posting Recurring Alert1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1240,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "100",
+          "name": "Noc-bot-slack-post"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=select recurring,rec_count from redis_slack_update where status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}' and thread_id=\"{{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}\";"
+      },
+      "name": "Checking Recurring Count",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2200,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nrec=`echo \"{{$node[\"Checking Recurring Count\"].json[\"rec_count\"]}}\"`\nk=$(expr $rec + 1)\necho \"$k\""
+      },
+      "name": "Incrementing Recurring count",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        2440,
+        1440
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set rec_count={{$json[\"stdout\"]}} where status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}'  and thread_id=\"{{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}\";"
+      },
+      "name": "Updating Recurring Count",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2660,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=select recurring,rec_count from redis_slack_update where status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}' and thread_id=\"{{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}\";"
+      },
+      "name": "Checking Recurring Count1",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2200,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "command": "=#!/bin/bash\nrec=`echo \"{{$node[\"Checking Recurring Count1\"].json[\"rec_count\"]}}\"`\nk=$(expr $rec + 1)\necho \"$k\""
+      },
+      "name": "Incrementing Recurring count1",
+      "type": "n8n-nodes-base.executeCommand",
+      "position": [
+        2420,
+        2340
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set rec_count={{$json[\"stdout\"]}} where status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}'  and thread_id=\"{{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}\";"
+      },
+      "name": "Updating Recurring Count1",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2640,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://noc-alerts.freshservice.com/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/notes",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={ \"body\" : \"CI Redis thread link - {{$node[\"Get CI Slack Permalink22\"].json[\"permalink\"]}} \", \"private\" : false }",
+        "headerParametersJson": "{ \"content-type\": \"application/json\" }"
+      },
+      "name": "Updating CI slack link6",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1700,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.getPermalink",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Posting Recurring Alert\"].json[\"channel\"]}}"
+            },
+            {
+              "name": "message_ts",
+              "value": "={{$node[\"Posting Recurring Alert\"].json[\"ts\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get CI Slack Permalink22",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1460,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "86",
+          "name": "Noc-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://noc-alerts.freshservice.com/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/notes",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={ \"body\" : \"{{$node[\"Fetching Slack & Oncall Details3\"].json[\"oncall_team\"]}}  Redis thread link - {{$node[\"Get CI Slack Permalink23\"].json[\"permalink\"]}} \", \"private\" : false }",
+        "headerParametersJson": "{ \"content-type\": \"application/json\" }"
+      },
+      "name": "Updating CI slack link7",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1700,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "https://slack.com/api/chat.getPermalink",
+        "options": {},
+        "headerParametersUi": {
+          "parameter": [
+            {
+              "name": "content-type",
+              "value": "application/x-www-form-urlencoded"
+            }
+          ]
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "channel",
+              "value": "={{$node[\"Posting Recurring Alert1\"].json[\"channel\"]}}"
+            },
+            {
+              "name": "message_ts",
+              "value": "={{$node[\"Posting Recurring Alert1\"].json[\"ts\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Get CI Slack Permalink23",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1460,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "86",
+          "name": "Noc-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=select * from prod_redisdb_details where dbname='{{$json[\"stdout\"]}}';"
+      },
+      "name": "Product Oncall & Slack Details",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        -1340,
+        2300
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "={{$node[\"Fetching Slack & Oncall Details3\"].json[\"slack_name\"]}}",
+        "text": "=",
+        "otherOptions": {},
+        "attachments": [
+          {
+            "text": "=*Oncall* : {{$node[\"Oncall Not Present\"].json[\"oncall\"]}}<@{{$node[\"Prod Slack User Primary\"].json[\"body\"][\"user\"][\"id\"]}}> <@{{$node[\"Prod Slack User Secondary\"].json[\"body\"][\"user\"][\"id\"]}}> Kindly Check this\n*Ticket_URL*            :  <{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"]}}| {{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"]}}>\n*Alert*                       :  Redis Alert – {{$node[\"Set Param Values1\"].json[\"Alert Name\"]}}\n*Database Name*    :  {{$node[\"Set Param Values1\"].json[\"DBName\"]}}\n*Account*                 :  {{$node[\"Set Param Values1\"].json[\"Account\"]}}\n*Subscription*          :  {{$node[\"Set Param Values1\"].json[\"Subscription\"]}}\n*Database Id*          :   {{$node[\"Set Param Values1\"].json[\"Database ID\"]}}\n*DB Endpoint*         :   {{$node[\"Set Param Values1\"].json[\"DB Endpoint\"]}}\n*Redis URL*            :   {{$node[\"Redis URL\"].json[\"Redis_URL\"]}}",
+            "color": "#ff0000"
+          }
+        ]
+      },
+      "name": "Posting to Product Channel",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        1240,
+        2600
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "slackApi": {
+          "id": "99",
+          "name": "noc ticket automator bot token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "channel": "=redislabs-alerts-noc-cloudinfra",
+        "text": "=",
+        "otherOptions": {},
+        "attachments": [
+          {
+            "text": "=*Oncall* : {{$node[\"Oncall Not Present2\"].json[\"oncall\"]}}<@{{$node[\"Get Slack User Primary1\"].json[\"body\"][\"user\"][\"id\"]}}> <@{{$node[\"Get Slack User Secondary1\"].json[\"body\"][\"user\"][\"id\"]}}> Kindly Check this\n*Ticket_URL*            :    <{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"]}}| {{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"]}}>\n*Alert*                       :   Redis Alert – {{$node[\"Set Param Values1\"].json[\"Alert Name\"]}}\n*Database Name*    :   {{$node[\"Set Param Values1\"].json[\"DBName\"]}}\n*Account*                 :   {{$node[\"Set Param Values1\"].json[\"Account\"]}}\n*Subscription*          :   {{$node[\"Set Param Values1\"].json[\"Subscription\"]}}\n*Database Id*          :   {{$node[\"Set Param Values1\"].json[\"Database ID\"]}}\n*DB Endpoint*         :   {{$node[\"Set Param Values1\"].json[\"DB Endpoint\"]}}\n*Redis URL*            :   {{$node[\"Redis URL\"].json[\"Redis_URL\"]}}",
+            "color": "#ff0000",
+            "title": ""
+          }
+        ]
+      },
+      "name": "Posting to Redis Channel",
+      "type": "n8n-nodes-base.slack",
+      "position": [
+        1220,
+        1700
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "slackApi": {
+          "id": "99",
+          "name": "noc ticket automator bot token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "ticket",
+        "operation": "get",
+        "ticketId": "=19059273"
+      },
+      "name": "Get ticket details ON-1",
+      "type": "n8n-nodes-base.freshservice",
+      "position": [
+        -3200,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "freshserviceApi": {
+          "id": "103",
+          "name": "FD Ticketing Tool"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "resource": "ticket",
+        "operation": "get",
+        "ticketId": "={{$json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"].split('-')[1]}}"
+      },
+      "name": "Get ticket details ON",
+      "type": "n8n-nodes-base.freshservice",
+      "position": [
+        -3200,
+        1840
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "freshserviceApi": {
+          "id": "79",
+          "name": "Freshservice account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "primary",
+              "value": "={{$json[\"current\"][\"primary\"][0][\"user\"]}}"
+            },
+            {
+              "name": "secondary",
+              "value": "={{$json[\"current\"][\"secondary\"][0][\"user\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Prod Oncall",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -660,
+        2300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=select * from redis_slack_update where slack_channel='{{$node[\"Fetching Slack & Oncall Details3\"].json[\"slack_name\"]}}' and status='0' and dbname='{{$node[\"DB Name Setting to FIle\"].json[\"stdout\"]}}';"
+      },
+      "name": "Checking DB On/Off Alert status3",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        420,
+        2260
+      ],
+      "typeVersion": 1,
+      "alwaysOutputData": true,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "primary",
+              "value": "={{$json[\"current\"][\"primary\"][0][\"user\"]}}"
+            },
+            {
+              "name": "secondary",
+              "value": "={{$json[\"current\"][\"secondary\"][0][\"user\"]}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Set Oncall Details2",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -920,
+        1360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"primary\"]}}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Oncall Validations2",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -500,
+        1360
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "oncall",
+              "value": "=<!channel>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Oncall Not Present2",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        -20,
+        1220
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json[\"primary\"]}}",
+              "operation": "isEmpty"
+            }
+          ]
+        }
+      },
+      "name": "Oncall Validations",
+      "type": "n8n-nodes-base.if",
+      "position": [
+        -420,
+        2300
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "keepOnlySet": true,
+        "values": {
+          "string": [
+            {
+              "name": "oncall",
+              "value": "=<!channel>"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "name": "Oncall Not Present",
+      "type": "n8n-nodes-base.set",
+      "position": [
+        0,
+        2120
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "=https://slack.com/api/users.lookupByEmail",
+        "options": {
+          "fullResponse": true
+        },
+        "headerParametersUi": {
+          "parameter": []
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "email",
+              "value": "={{$node[\"Set Prod Oncall\"].json[\"primary\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Prod Slack User Primary",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -120,
+        2500
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "85",
+          "name": "Get Slack User Details"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "headerAuth",
+        "url": "=https://slack.com/api/users.lookupByEmail",
+        "options": {
+          "fullResponse": true
+        },
+        "headerParametersUi": {
+          "parameter": []
+        },
+        "queryParametersUi": {
+          "parameter": [
+            {
+              "name": "email",
+              "value": "={{$node[\"Set Prod Oncall\"].json[\"secondary\"]}}"
+            }
+          ]
+        }
+      },
+      "name": "Prod Slack User Secondary",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        140,
+        2500
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "85",
+          "name": "Get Slack User Details"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "PUT",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/tickets/{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"].split('-')[1]}}",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n\"custom_fields\":{\n\"auto_post\" : \"yes\",\n\"informed_to_oncall\" : \"Informed Via Chat\"\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "RS fields update1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1700,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/merge-tickets",
+        "jsonParameters": true,
+        "options": {
+          "batchInterval": 60000,
+          "batchSize": 10,
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n\"target\":\n{\n\"ticket_id\": {{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}\n},\n\"source\":\n{\n\"ticket_ids\": [{{$node[\"Checking DB On/Off Alert status\"].json[\"FR_ID\"]}}]\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "RS & FR Merge1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2200,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set merge=1 where status=1 and channel_id='{{$node[\"Checking DB On/Off Alert status\"].json[\"channel_id\"]}}' and thread_id='{{$node[\"Checking DB On/Off Alert status\"].json[\"thread_id\"]}}';"
+      },
+      "name": "Update Status to 3",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2440,
+        1180
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "PUT",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/tickets/{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_id\"].split('-')[1]}}",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n\"custom_fields\":{\n\"auto_post\" : \"yes\",\n\"informed_to_oncall\" : \"Informed Via Chat\"\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "RS fields update11",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        1780,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "=update redis_slack_update set merge=1 where status=1 and channel_id='{{$node[\"Checking DB On/Off Alert status3\"].json[\"channel_id\"]}}' and thread_id='{{$node[\"Checking DB On/Off Alert status3\"].json[\"thread_id\"]}}';"
+      },
+      "name": "Update Status to 33",
+      "type": "n8n-nodes-base.mySql",
+      "position": [
+        2460,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "mySql": {
+          "id": "95",
+          "name": "Redis Alertpost"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/merge-tickets",
+        "jsonParameters": true,
+        "options": {
+          "batchInterval": 60000,
+          "batchSize": 10,
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n\"target\":\n{\n\"ticket_id\": {{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}\n},\n\"source\":\n{\n\"ticket_ids\": [{{$node[\"Checking DB On/Off Alert status3\"].json[\"FR_ID\"]}}]\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "RS & FR Merge11",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2240,
+        2080
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/merge-tickets",
+        "jsonParameters": true,
+        "options": {
+          "batchInterval": 60000,
+          "batchSize": 10
+        },
+        "bodyParametersJson": "={\n\"target\":\n{\n\"ticket_id\": {{$node[\"Checking DB On/Off Alert status\"].json[\"FR_ID\"]}}\n},\n\"source\":\n{\n\"ticket_ids\": [{{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}]\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "FR-Merge1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2860,
+        1440
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "POST",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/merge-tickets",
+        "jsonParameters": true,
+        "options": {
+          "batchInterval": 60000,
+          "batchSize": 10
+        },
+        "bodyParametersJson": "={\n\"target\":\n{\n\"ticket_id\": {{$node[\"Checking DB On/Off Alert status3\"].json[\"FR_ID\"]}}\n},\n\"source\":\n{\n\"ticket_ids\": [{{$node[\"Extracting Description1\"].json[\"ticket_id\"]}}]\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "FR-Merge11",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2860,
+        2340
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "PUT",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n\"custom_fields\":{\n\"auto_post\" : \"yes\",\n\"informed_to_oncall\" : \"Informed Via Chat\"\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "FR fields update1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2440,
+        1700
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "basicAuth",
+        "requestMethod": "PUT",
+        "url": "=https://{{$node[\"Redis Ticket Webhook\"].json[\"body\"][\"freshdesk_webhook\"][\"ticket_url\"].split('/')[2]}}/api/v2/tickets/{{$node[\"Get ticket details ON\"].json[\"id\"]}}/",
+        "jsonParameters": true,
+        "options": {
+          "bodyContentType": "json"
+        },
+        "bodyParametersJson": "={\n\"custom_fields\":{\n\"auto_post\" : \"yes\",\n\"informed_to_oncall\" : \"Informed Via Chat\"\n}\n}",
+        "headerParametersJson": "{ \"Content-Type\": \"application/json\" }"
+      },
+      "name": "FR fields update",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        2420,
+        2600
+      ],
+      "typeVersion": 1,
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "102",
+          "name": "FD Ticketing Tool"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "IF": {
+      "main": [
+        [
+          {
+            "node": "Posting Recurring Alert",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Posting to Redis Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF1": {
+      "main": [
+        [
+          {
+            "node": "Posting Recurring Alert1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Posting to Product Channel",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set": {
+      "main": [
+        [
+          {
+            "node": "MySQL1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF11": {
+      "main": [
+        [
+          {
+            "node": "Posting Off Alert ",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF12": {
+      "main": [
+        [
+          {
+            "node": "Posting Off Alert 2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "IF1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set1": {
+      "main": [
+        [
+          {
+            "node": "MySQL2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL1": {
+      "main": [
+        [
+          {
+            "node": "Get CI Slack Permalink2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL2": {
+      "main": [
+        [
+          {
+            "node": "Get CI Slack Permalink5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL3": {
+      "main": [
+        [
+          {
+            "node": "Checking Recurring Count1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MySQL4": {
+      "main": [
+        [
+          {
+            "node": "Checking Recurring Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis URL": {
+      "main": [
+        [
+          {
+            "node": "DB Name Setting to FIle",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RS & FR Merge1": {
+      "main": [
+        [
+          {
+            "node": "Update Status to 3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RS & FR Merge11": {
+      "main": [
+        [
+          {
+            "node": "Update Status to 33",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Prod Oncall": {
+      "main": [
+        [
+          {
+            "node": "Oncall Validations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating Status": {
+      "main": [
+        [
+          {
+            "node": "RS & FR Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating Status1": {
+      "main": [
+        [
+          {
+            "node": "RS & FR Merge11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RS fields update1": {
+      "main": [
+        [
+          {
+            "node": "Updating Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Param Values1": {
+      "main": [
+        [
+          {
+            "node": "Redis URL",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oncall Not Present": {
+      "main": [
+        [
+          {
+            "node": "Checking DB On/Off Alert status3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oncall Validations": {
+      "main": [
+        [
+          {
+            "node": "Oncall Not Present",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prod Slack User Primary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting Off Alert ": {
+      "main": [
+        [
+          {
+            "node": "Get CI Slack Permalink1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "RS fields update11": {
+      "main": [
+        [
+          {
+            "node": "Updating Status1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching CI oncall1": {
+      "main": [
+        [
+          {
+            "node": "Set Oncall Details2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oncall Not Present2": {
+      "main": [
+        [
+          {
+            "node": "Checking DB On/Off Alert status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Oncall Validations2": {
+      "main": [
+        [
+          {
+            "node": "Oncall Not Present2",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Slack User Primary1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting Off Alert 2": {
+      "main": [
+        [
+          {
+            "node": "Get CI Slack Permalink3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Set Oncall Details2": {
+      "main": [
+        [
+          {
+            "node": "Oncall Validations2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Redis Ticket Webhook": {
+      "main": [
+        [
+          {
+            "node": "Get ticket details ON",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get ticket details ON": {
+      "main": [
+        [
+          {
+            "node": "Extracting Description1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating CI slack link": {
+      "main": [
+        [
+          {
+            "node": "FR fields update1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DB Name Setting to FIle": {
+      "main": [
+        [
+          {
+            "node": "Product Oncall & Slack Details",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Fetching CI oncall1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extracting Description1": {
+      "main": [
+        [
+          {
+            "node": "Extract Description by div1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CI Slack Permalink1": {
+      "main": [
+        [
+          {
+            "node": "Updating CI slack link2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CI Slack Permalink2": {
+      "main": [
+        [
+          {
+            "node": "Updating CI slack link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CI Slack Permalink3": {
+      "main": [
+        [
+          {
+            "node": "Updating CI slack link5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CI Slack Permalink5": {
+      "main": [
+        [
+          {
+            "node": "Updating CI slack link4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Slack User Primary1": {
+      "main": [
+        [
+          {
+            "node": "Get Slack User Secondary1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting Recurring Alert": {
+      "main": [
+        [
+          {
+            "node": "Get CI Slack Permalink22",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prod Slack User Primary": {
+      "main": [
+        [
+          {
+            "node": "Prod Slack User Secondary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating CI slack link2": {
+      "main": [
+        [
+          {
+            "node": "RS fields update1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating CI slack link4": {
+      "main": [
+        [
+          {
+            "node": "FR fields update",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating CI slack link5": {
+      "main": [
+        [
+          {
+            "node": "RS fields update11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating CI slack link6": {
+      "main": [
+        [
+          {
+            "node": "MySQL4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating CI slack link7": {
+      "main": [
+        [
+          {
+            "node": "MySQL3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking Recurring Count": {
+      "main": [
+        [
+          {
+            "node": "Incrementing Recurring count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Oncall Details3": {
+      "main": [
+        [
+          {
+            "node": "Set Prod Oncall",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CI Slack Permalink22": {
+      "main": [
+        [
+          {
+            "node": "Updating CI slack link6",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get CI Slack Permalink23": {
+      "main": [
+        [
+          {
+            "node": "Updating CI slack link7",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting Recurring Alert1": {
+      "main": [
+        [
+          {
+            "node": "Get CI Slack Permalink23",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting to Redis Channel": {
+      "main": [
+        [
+          {
+            "node": "Set",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating Recurring Count": {
+      "main": [
+        [
+          {
+            "node": "FR-Merge1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking Recurring Count1": {
+      "main": [
+        [
+          {
+            "node": "Incrementing Recurring count1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Slack User Secondary1": {
+      "main": [
+        [
+          {
+            "node": "Checking DB On/Off Alert status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prod Slack User Secondary": {
+      "main": [
+        [
+          {
+            "node": "Checking DB On/Off Alert status3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Updating Recurring Count1": {
+      "main": [
+        [
+          {
+            "node": "FR-Merge11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Required Details1": {
+      "main": [
+        [
+          {
+            "node": "Set Param Values1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Posting to Product Channel": {
+      "main": [
+        [
+          {
+            "node": "Set1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Description by div1": {
+      "main": [
+        [
+          {
+            "node": "Fetching Required Details1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incrementing Recurring count": {
+      "main": [
+        [
+          {
+            "node": "Updating Recurring Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Incrementing Recurring count1": {
+      "main": [
+        [
+          {
+            "node": "Updating Recurring Count1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Product Oncall & Slack Details": {
+      "main": [
+        [
+          {
+            "node": "Fetching Slack & Oncall Details3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking DB On/Off Alert status": {
+      "main": [
+        [
+          {
+            "node": "IF11",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Checking DB On/Off Alert status3": {
+      "main": [
+        [
+          {
+            "node": "IF12",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetching Slack & Oncall Details3": {
+      "main": [
+        [
+          {
+            "node": "Fetching Oncall Details3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": 55
+}
